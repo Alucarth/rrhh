@@ -75,7 +75,22 @@ class EmployeePayroll
         $this->position_group_id = $contract->position->position_group->id;
         $this->employer_number = $contract->position->position_group->employer_number->number;
         $this->employer_number_id = $contract->position->position_group->employer_number->id;
-        $this->valid_contract = (is_null($contract->date_end) || $contract->status) ? true : (Carbon::parse($contract->date_end)->gte(Carbon::create($payroll->procedure->year, $payroll->procedure->month->id)->endOfMonth()) || Carbon::parse($contract->date_end)->gte(Carbon::create($payroll->procedure->year, $payroll->procedure->month->id, 30)) || $contract->status);
+        $this->valid_contract = $this->verifyActive($payroll);
+    }
+
+    public function verifyActive($payroll)
+    {
+        $contract = $payroll->contract;
+        $employee = $contract->employee;
+
+        if (is_null($contract->date_end) && is_null($contract->date_retirement)) {
+            return true;
+        } elseif (!is_null($contract->date_retirement)) {
+            return (Carbon::parse($contract->date_retirement)->gte(Carbon::create($payroll->procedure->year, $payroll->procedure->month->id)->endOfMonth()) || Carbon::parse($contract->date_retirement)->gte(Carbon::create($payroll->procedure->year, $payroll->procedure->month->id, 30, 0, 0, 0)));
+        } else {
+            return (Carbon::parse($contract->date_end)->gte(Carbon::create($payroll->procedure->year, $payroll->procedure->month->id)->endOfMonth()) || Carbon::parse($contract->date_end)->gte(Carbon::create($payroll->procedure->year, $payroll->procedure->month->id, 30, 0, 0, 0)));
+        }
+        return false;
     }
 
     public function setZeroAccounts()
@@ -122,9 +137,7 @@ class EmployeePayroll
 
     private function employerContribution($payroll)
     {
-        if ($payroll->contract->employee->insurance_company->active) {
-            $this->contribution_insurance_company = Util::get_percentage($this->quotable, $payroll->procedure->contribution_insurance_company);
-        }
+        $this->contribution_insurance_company = Util::get_percentage($this->quotable, $payroll->procedure->contribution_insurance_company);
         $this->contribution_professional_risk = Util::get_percentage($this->quotable, $payroll->procedure->contribution_professional_risk);
         $this->contribution_employer_solidary = Util::get_percentage($this->quotable, $payroll->procedure->contribution_employer_solidary);
         $this->contribution_employer_housing = Util::get_percentage($this->quotable, $payroll->procedure->contribution_employer_housing);
