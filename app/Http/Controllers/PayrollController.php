@@ -629,8 +629,12 @@ class PayrollController extends Controller
                     }
                 }
 
-                if (Payroll::where('code', $payroll->code)->count() > 1) {
-                    $rehired = true;
+                $contract_payrolls = Payroll::where('code', $payroll->code)->get();
+
+                if ($contract_payrolls->count() > 1) {
+                    $rehired = is_null($contract_payrolls[0]->contract->date_retirement) && is_null($contract_payrolls[1]->contract->date_retirement);
+                } else {
+                    $rehired = false;
                 }
 
                 $e = new EmployeePayroll($payroll, $procedure);
